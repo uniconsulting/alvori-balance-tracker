@@ -11,6 +11,7 @@ import {
   Calculator,
   Copy,
   History,
+  Palette,
   Plus,
   RotateCcw,
   Save,
@@ -21,6 +22,7 @@ import { buildRowsForDate, calcTotals, compareStatus, getDayStatus } from "./lib
 import { formatCurrency, formatInteger, parseMoney } from "./lib/money";
 import { createDefaultState, loadState, saveState } from "./lib/storage";
 import { formatHumanDate, sortDatesDesc } from "./lib/date";
+import { DEFAULT_STYLE_SETTINGS, getFactTone, sanitizeStyleSettings } from "./lib/styleSettings";
 
 function cn() {
   return Array.prototype.slice.call(arguments).filter(Boolean).join(" ");
@@ -40,6 +42,10 @@ function Button({ children, variant = "secondary", className, ...props }) {
 
 function TextInput({ className, ...props }) {
   return <input className={cn("input", className)} {...props} />;
+}
+
+function NumberInput({ className, ...props }) {
+  return <input className={cn("input", className)} inputMode="numeric" type="number" min="0" {...props} />;
 }
 
 function MoneyInput({ value, onChange, className, placeholder = "0 ₽" }) {
@@ -244,7 +250,47 @@ function ActionStatus({ notice }) {
   );
 }
 
-function AppHeader({ date, onDateChange, onOpenHistory, onOpenSettings, currentView }) {
+function ToggleSwitch({ checked, onChange, label, description }) {
+  return (
+    <label className="toggle-row">
+      <span>
+        <strong>{label}</strong>
+        {description ? <small>{description}</small> : null}
+      </span>
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <span className="toggle-switch" aria-hidden="true" />
+    </label>
+  );
+}
+
+function SegmentedControl({ value, options, onChange }) {
+  return (
+    <div className="segmented-control">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          className={cn(value === option.value && "segmented-control__item--active")}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function getFactInputClass(row, styleSettings) {
+  const tone = getFactTone(row.norma, row.fact, styleSettings);
+
+  return cn(
+    "fact-input",
+    `fact-input--${tone}`,
+    `fact-input--${styleSettings.factFillMode}`
+  );
+}
+
+function AppHeader({ date, onDateChange, onOpenHistory, onOpenSettings, onOpenStyleSettings, currentView }) {
   return (
     <header className="app-header">
       <div className="brand-lockup">
@@ -260,6 +306,10 @@ function AppHeader({ date, onDateChange, onOpenHistory, onOpenSettings, currentV
         <Button variant="primary" onClick={onOpenSettings}>
           <Settings size={17} />
           Настройки
+        </Button>
+        <Button variant="secondary" onClick={onOpenStyleSettings}>
+          <Palette size={17} />
+          Стиль
         </Button>
       </div>
     </header>
@@ -300,11 +350,17 @@ function TotalsPanel({ totals }) {
   );
 }
 
-function BalanceTable({ rows, onFactChange, onNormaChange, onResetNorma }) {
+function BalanceTable({ rows, onFactChange, onNormaChange, onResetNorma, styleSettings }) {
   return (
-    <section className="table-panel">
+    <section className={cn("table-panel", `table-panel--${styleSettings.tableFrame}`)}>
       <div className="table-scroll">
-        <table className="balance-table">
+        <table
+          className={cn(
+            "balance-table",
+            `balance-table--${styleSettings.tableDensity}`,
+            !styleSettings.rowHoverEnabled && "balance-table--no-hover"
+          )}
+        >
           <colgroup>
             <col className="balance-col balance-col--service" />
             <col className="balance-col balance-col--norma" />
@@ -357,7 +413,7 @@ function BalanceTable({ rows, onFactChange, onNormaChange, onResetNorma }) {
                     <MoneyInput
                       value={row.fact}
                       onChange={(value) => onFactChange(row.service.id, value)}
-                      className={cn(status === "below" && "input--danger", status === "above" && "input--ok")}
+                      className={getFactInputClass(row, styleSettings)}
                     />
                   </td>
                   <td className={cn("money-cell", row.refill > 0 && "money-cell--danger")}>
@@ -367,7 +423,7 @@ function BalanceTable({ rows, onFactChange, onNormaChange, onResetNorma }) {
                     <div className={cn("status-pill", `status-pill--${status}`)}>
                       {status === "equal" ? <CheckCircle2 size={15} /> : <BadgeAlert size={15} />}
                       <span>{statusLabel}</span>
-                      <strong>{ratio}%</strong>
+                      {styleSettings.showStatusPercent ? <strong>{ratio}%</strong> : null}
                     </div>
                   </td>
                 </tr>
@@ -498,6 +554,133 @@ function SettingsPanel({ services, onSave, onCancel }) {
   );
 }
 
+function StyleSettingsPanel({ settings, onChange, onCancel, onReset }) {
+  const styleSettings = sanitizeStyleSettings(settings);
+
+  const patchSettings = (patch) => {
+    onChange(sanitizeStyleSettings({ ...styleSettings, ...patch }));
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onCancel}>
+      <div className="modal style-modal" onClick={(event) => event.stopPropagation()}>
+        <div className="modal__header">
+          <div>
+            <span className="eyebrow">Интерфейс</span>
+            <h2>Настройки стиля</h2>
+          </div>
+          <Button variant="icon" onClick={onCancel} aria-label="Закрыть настройки стиля">
+            <X size={18} />
+          </Button>
+        </div>
+
+        <div className="style-settings">
+          <section className="style-card">
+            <div>
+              <h3>Поле «Факт»</h3>
+              <p>Выберите интенсивность подсветки дефицита, нормы и профицита.</p>
+            </div>
+            <SegmentedControl
+              value={styleSettings.factFillMode}
+              onChange={(value) => patchSettings({ factFillMode: value })}
+              options={[
+                { value: "solid", label: "Заливка" },
+                { value: "soft", label: "Мягко" },
+                { value: "border", label: "Контур" },
+              ]}
+            />
+          </section>
+
+          <section className="style-card">
+            <ToggleSwitch
+              checked={styleSettings.surplusHighlightEnabled}
+              onChange={(value) => patchSettings({ surplusHighlightEnabled: value })}
+              label="Выделять профицит"
+              description="Оранжевая заливка показывает излишек средств выше заданного порога."
+            />
+
+            <div className="style-grid">
+              <div className="style-field">
+                <span>Тип порога</span>
+                <SegmentedControl
+                  value={styleSettings.surplusThresholdType}
+                  onChange={(value) => patchSettings({ surplusThresholdType: value })}
+                  options={[
+                    { value: "percent", label: "% сверх нормы" },
+                    { value: "rub", label: "₽ сверх нормы" },
+                  ]}
+                />
+              </div>
+              <label className="style-field">
+                <span>Значение порога</span>
+                <NumberInput
+                  value={styleSettings.surplusThresholdValue}
+                  onChange={(event) => patchSettings({ surplusThresholdValue: event.target.value })}
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className="style-card">
+            <div>
+              <h3>Таблица</h3>
+              <p>Настройки плотности и визуальной реакции строк.</p>
+            </div>
+            <div className="style-grid">
+              <div className="style-field">
+                <span>Плотность</span>
+                <SegmentedControl
+                  value={styleSettings.tableDensity}
+                  onChange={(value) => patchSettings({ tableDensity: value })}
+                  options={[
+                    { value: "standard", label: "Стандарт" },
+                    { value: "compact", label: "Компактно" },
+                  ]}
+                />
+              </div>
+              <div className="style-field">
+                <span>Фрейм</span>
+                <SegmentedControl
+                  value={styleSettings.tableFrame}
+                  onChange={(value) => patchSettings({ tableFrame: value })}
+                  options={[
+                    { value: "flat", label: "Плоский" },
+                    { value: "soft", label: "Мягкий" },
+                  ]}
+                />
+              </div>
+            </div>
+
+            <ToggleSwitch
+              checked={styleSettings.rowHoverEnabled}
+              onChange={(value) => patchSettings({ rowHoverEnabled: value })}
+              label="Hover строк"
+              description="Подсвечивать строку при наведении."
+            />
+            <ToggleSwitch
+              checked={styleSettings.showStatusPercent}
+              onChange={(value) => patchSettings({ showStatusPercent: value })}
+              label="Процент в статусе"
+              description="Показывать отношение факта к норме в столбце статуса."
+            />
+          </section>
+        </div>
+
+        <div className="modal__actions">
+          <Button variant="secondary" onClick={onReset}>
+            <RotateCcw size={16} />
+            Сбросить стиль
+          </Button>
+          <Button variant="primary" onClick={onCancel}>
+            <Save size={16} />
+            Готово
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HistoryPage({ dates, recordsByDate, services, onSelectDate, onBack }) {
   return (
     <section className="page-panel">
@@ -549,11 +732,12 @@ export default function App() {
   const initialState = useMemo(() => loadState(), []);
   const [services, setServices] = useState(initialState.services);
   const [recordsByDate, setRecordsByDate] = useState(initialState.recordsByDate);
-  const [preferences] = useState(initialState.preferences);
+  const [preferences, setPreferences] = useState(initialState.preferences);
   const [date, setDate] = useState(initialState.preferences.lastDate);
   const [notice, setNotice] = useState(null);
   const [actionNotice, setActionNotice] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isStyleSettingsOpen, setIsStyleSettingsOpen] = useState(false);
   const [view, setView] = useState("balance");
   const noticeTimerRef = useRef(null);
   const actionNoticeTimerRef = useRef(null);
@@ -616,6 +800,14 @@ export default function App() {
   );
   const totals = useMemo(() => calcTotals(rows), [rows]);
   const historyDates = useMemo(() => sortDatesDesc(Object.keys(recordsByDate)), [recordsByDate]);
+  const styleSettings = sanitizeStyleSettings(preferences.styleSettings);
+
+  const updateStyleSettings = (nextSettings) => {
+    setPreferences((prev) => ({
+      ...prev,
+      styleSettings: sanitizeStyleSettings(nextSettings),
+    }));
+  };
 
   const updateFact = (serviceId, fact) => {
     setRecordsByDate((prev) => {
@@ -705,6 +897,7 @@ export default function App() {
   };
 
   const copyBalanceSummary = async () => {
+    const deltaLabel = totals.reserve > 0 ? "Профицит" : totals.reserve < 0 ? "Дефицит" : "В норме";
     const lines = [
       "Учет баланса сервисов",
       `Дата: ${formatHumanDate(date)} (${date})`,
@@ -713,7 +906,7 @@ export default function App() {
       `Норма: ${formatCurrency(totals.norma)}`,
       `Факт: ${formatCurrency(totals.fact)}`,
       `К пополнению: ${formatCurrency(totals.refill)}`,
-      `${totals.refill === 0 ? "В норме" : "Дефицит"}: ${formatCurrency(totals.reserve)}`,
+      `${deltaLabel}: ${formatCurrency(Math.abs(totals.reserve))}`,
       "",
       "СЕРВИСЫ",
       "",
@@ -780,6 +973,7 @@ export default function App() {
         onDateChange={setDate}
         onOpenHistory={() => setView("history")}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenStyleSettings={() => setIsStyleSettingsOpen(true)}
         currentView={view}
       />
 
@@ -817,6 +1011,7 @@ export default function App() {
               onFactChange={updateFact}
               onNormaChange={updateNorma}
               onResetNorma={resetNorma}
+              styleSettings={styleSettings}
             />
             <TotalsPanel totals={totals} />
           </>
@@ -825,6 +1020,15 @@ export default function App() {
 
       {isSettingsOpen ? (
         <SettingsPanel services={services} onSave={saveServices} onCancel={() => setIsSettingsOpen(false)} />
+      ) : null}
+
+      {isStyleSettingsOpen ? (
+        <StyleSettingsPanel
+          settings={styleSettings}
+          onChange={updateStyleSettings}
+          onCancel={() => setIsStyleSettingsOpen(false)}
+          onReset={() => updateStyleSettings(DEFAULT_STYLE_SETTINGS)}
+        />
       ) : null}
 
     </div>

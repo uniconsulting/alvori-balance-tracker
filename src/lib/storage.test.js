@@ -97,3 +97,46 @@ test("loadState adds newly introduced default services to older saved settings",
   assert.ok(state.services.some((service) => service.id === "avtodor-alvori"));
   assert.ok(state.services.some((service) => service.id === "platon-alvori"));
 });
+
+test("loadState restores default style settings when saved preferences do not include them", () => {
+  global.window = { localStorage: createLocalStorage() };
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      services: [{ id: "fuel", name: "Топливо", defaultNorma: 100 }],
+      recordsByDate: {},
+      preferences: { lastDate: "2026-04-29" },
+    })
+  );
+
+  const state = loadState();
+
+  assert.equal(state.preferences.styleSettings.factFillMode, "solid");
+  assert.equal(state.preferences.styleSettings.surplusThresholdType, "percent");
+  assert.equal(state.preferences.styleSettings.surplusThresholdValue, 20);
+});
+
+test("loadState sanitizes broken style settings", () => {
+  global.window = { localStorage: createLocalStorage() };
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      services: [{ id: "fuel", name: "Топливо", defaultNorma: 100 }],
+      recordsByDate: {},
+      preferences: {
+        lastDate: "2026-04-29",
+        styleSettings: {
+          factFillMode: "unknown",
+          surplusThresholdType: "unknown",
+          surplusThresholdValue: -5,
+        },
+      },
+    })
+  );
+
+  const state = loadState();
+
+  assert.equal(state.preferences.styleSettings.factFillMode, "solid");
+  assert.equal(state.preferences.styleSettings.surplusThresholdType, "percent");
+  assert.equal(state.preferences.styleSettings.surplusThresholdValue, 20);
+});

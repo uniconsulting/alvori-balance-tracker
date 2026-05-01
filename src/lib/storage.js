@@ -1,5 +1,6 @@
 import { defaultServices } from "../data/defaultServices.js";
 import { todayISO } from "./date.js";
+import { sanitizeStyleSettings } from "./styleSettings.js";
 
 export const STORAGE_KEY = "alvori-balance:v1";
 const STORAGE_VERSION = 1;
@@ -83,6 +84,7 @@ function sanitizePreferences(preferences) {
 
   return {
     lastDate: /^\d{4}-\d{2}-\d{2}$/.test(source.lastDate || "") ? source.lastDate : todayISO(),
+    styleSettings: sanitizeStyleSettings(source.styleSettings),
   };
 }
 
