@@ -39,9 +39,9 @@
   --divider: rgba(38, 41, 46, 0.12);
   --accent: #fab021;
   --accent-hover: #e99f15;
-  --danger: #c74336;
+  --danger: #e12535;
   --danger-soft: #fff1ef;
-  --success: #167a52;
+  --success: #27d471;
   --success-soft: #edf8f2;
   --r1: 24px;
   --p: 8px;
@@ -378,7 +378,7 @@ button {
 
 .input--danger:focus {
   border-color: var(--danger);
-  box-shadow: 0 0 0 3px rgba(199, 67, 54, 0.12);
+  box-shadow: 0 0 0 3px rgba(225, 37, 53, 0.14);
 }
 
 .input--ok {
@@ -395,7 +395,7 @@ button {
 
 .input--ok:focus {
   border-color: var(--success);
-  box-shadow: 0 0 0 3px rgba(22, 122, 82, 0.12);
+  box-shadow: 0 0 0 3px rgba(39, 212, 113, 0.16);
 }
 
 .table-panel {
@@ -601,11 +601,11 @@ button {
 }
 
 .total-value--danger {
-  color: #ff6f61;
+  color: var(--danger);
 }
 
 .total-value--ok {
-  color: #59d08f;
+  color: var(--success);
 }
 
 .notice {
