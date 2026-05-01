@@ -267,7 +267,8 @@ function AppHeader({ date, onDateChange, onOpenHistory, onOpenSettings, currentV
 }
 
 function TotalsPanel({ totals }) {
-  const isHealthy = totals.refill === 0;
+  const deltaLabel = totals.reserve > 0 ? "Профицит" : totals.reserve < 0 ? "Дефицит" : "В норме";
+  const deltaClass = totals.reserve < 0 ? "total-value--danger" : "total-value--ok";
 
   return (
     <div className="totals-scroll">
@@ -291,10 +292,8 @@ function TotalsPanel({ totals }) {
           </strong>
         </div>
         <div className="totals-metric">
-          <span>{isHealthy ? "В норме" : "Дефицит"}</span>
-          <strong className={isHealthy ? "total-value--ok" : "total-value--danger"}>
-            {formatCurrency(totals.reserve)}
-          </strong>
+          <span>{deltaLabel}</span>
+          <strong className={deltaClass}>{formatCurrency(Math.abs(totals.reserve))}</strong>
         </div>
       </section>
     </div>
