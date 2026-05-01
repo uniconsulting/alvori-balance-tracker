@@ -346,6 +346,12 @@ button {
   border-color: transparent;
 }
 
+.button--square {
+  width: 42px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .button--icon:hover {
   border-color: var(--accent);
 }

@@ -307,9 +307,8 @@ function AppHeader({ date, onDateChange, onOpenHistory, onOpenSettings, onOpenSt
           <Settings size={17} />
           Настройки
         </Button>
-        <Button variant="secondary" onClick={onOpenStyleSettings}>
+        <Button variant="primary" className="button--square" onClick={onOpenStyleSettings} aria-label="Настройки стиля">
           <Palette size={17} />
-          Стиль
         </Button>
       </div>
     </header>
