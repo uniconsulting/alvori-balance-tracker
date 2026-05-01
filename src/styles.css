@@ -37,9 +37,9 @@
   --text: #26292e;
   --muted: rgba(38, 41, 46, 0.68);
   --divider: rgba(38, 41, 46, 0.12);
-  --accent: #fab021;
-  --accent-hover: #e99f15;
-  --surplus: #fab021;
+  --accent: #ffa800;
+  --accent-hover: #f09d00;
+  --surplus: #ffa800;
   --surplus-soft: #fff4d8;
   --danger: #e12535;
   --danger-soft: #fff1ef;
@@ -369,8 +369,8 @@ button {
 }
 
 .input:focus {
-  border-color: rgba(250, 176, 33, 0.82);
-  box-shadow: 0 0 0 3px rgba(250, 176, 33, 0.18);
+  border-color: rgba(255, 168, 0, 0.82);
+  box-shadow: 0 0 0 3px rgba(255, 168, 0, 0.18);
 }
 
 .input--money {
@@ -484,7 +484,7 @@ button {
 
 .fact-input--surplus:focus {
   border-color: var(--surplus);
-  box-shadow: 0 0 0 3px rgba(250, 176, 33, 0.18);
+  box-shadow: 0 0 0 3px rgba(255, 168, 0, 0.18);
 }
 
 .table-panel {
